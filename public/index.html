@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Implemented Chat App Nodejs</title>
+    <style>
+        /* General Styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #chatContainer {
+            width: 100%;
+            max-width: 600px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* Chat Messages Styling */
+        #messagesContainer {
+            padding: 20px;
+            background-color: #e3e8ff;
+            height: 300px;
+            overflow-y: auto;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #messagesContainer div {
+            margin-bottom: 10px;
+        }
+
+        /* Form and Input Styling */
+        #message_formid {
+            display: flex;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #ddd;
+        }
+
+        #inputmessageid {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        #send_messageid {
+            padding: 10px 20px;
+            margin-left: 10px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #send_messageid:hover {
+            background-color: #0056b3;
+        }
+
+        /* Online Users List Styling */
+        #listOfUsers {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        #listOfUsers h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+            text-align: center;
+        }
+
+        #usersList {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #usersList li {
+            padding: 5px;
+            font-size: 16px;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div id="chatContainer">
+        <!-- Chat Messages -->
+        <div id="messagesContainer">
+            <h2 style="text-align:center; color:#333;">Chat Room</h2>
+            <div id="messagesList"></div>
+        </div>
+
+        <!-- Message Input Form -->
+        <form id="message_formid">
+            <input type="text" id="inputmessageid" placeholder="Type a message..." required/>
+            <button id="send_messageid" type="submit">Send</button>
+        </form>
+    </div>
+
+    <!-- Online Users List -->
+    <div id="listOfUsers">
+        <h2>Online Users List</h2>
+        <ul id="usersList"></ul>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const user_list = document.getElementById("usersList");
+        const message_list = document.getElementById("messagesList");
+        const message_form = document.getElementById("message_formid");
+        const input_message = document.getElementById("inputmessageid");
+
+        // Get username
+        const user_name = prompt("Enter your username: ");
+        
+        // Emit the username to the server
+        socket.emit("new_user_join", user_name);
+
+        // Listen for new users joining
+        socket.on("users_join", (user_name) => {
+            const li = document.createElement("li");
+            li.textContent = user_name;
+            user_list.appendChild(li);
+            add_message(`<p style="color:blue;">${user_name} joined the chat</p>`);
+        });
+
+        // Listen for user disconnection
+        socket.on("userLeft", (user) => {
+            add_message(`<p style="color:blue;">${user} left the chat</p>`);
+        });
+
+        // Update the online user list
+        socket.on("list_of_user", (users) => {
+            user_list.innerHTML = users.map((user) => `<li>${user}</li>`).join("");
+        });
+
+        // Handle message submission
+        message_form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const message = input_message.value.trim();
+            if (message) {
+                // Display the message in your own chat
+                add_message(`<p><strong>You:</strong> ${message}</p>`);
+                // Send the message to the server
+                socket.emit("send_message", message);
+                input_message.value = "";
+            }
+        });
+
+        // Listen for incoming messages
+        socket.on("receive_message", (data) => {
+            add_message(`<p><strong>${data.user}:</strong> ${data.message}</p>`);
+        });
+
+        // Function to add a message to the chat
+        function add_message(msg_input) {
+            const message_element = document.createElement("div");
+            message_element.innerHTML = msg_input;
+            message_list.appendChild(message_element);
+
+            // Scroll to the bottom of the chat
+            message_list.scrollTop = message_list.scrollHeight;
+        }
+    </script>
+</body>
+</html>
